@@ -1,0 +1,13 @@
+langchain
+openai
+chromadb
+transformers
+torch
+accelerate
+unstructured
+pypdf
+sentence-transformers
+langchain-community
+langchain_openai
+torchvision
+langchain-huggingface
