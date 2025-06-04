@@ -1,7 +1,7 @@
 from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
 from typing_extensions import TypedDict
-from langgraph.graph import StateGraph, START
+from langgraph.graph import StateGraph, START, MessagesState
 
 from student_assistant.rag.vector_store import VectorStore
 from student_assistant.core.config import settings
@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 llm = ChatOpenAI(model=settings.MODEL_NAME)
 
 
-class State(TypedDict):
+class State(MessagesState):
     question: str
     context: list[Document]
     answer: str

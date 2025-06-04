@@ -55,14 +55,19 @@ def project_session(db: ProjectDB, project: Project):
             handle_view_documents(project, db)
             
         elif option == "🗑️  Usuń projekt":
-            handle_delete_project(project, db)
+            if handle_delete_project(project, db):
+                return
+
         
         elif option == "❓ Zadaj pytanie":
             ask_questions_loop(project.vector_store)
 
 
 def handle_load_documents(project, db):
-    load_documents()
+    result = load_documents()
+    if result == "❌ Anuluj":
+        console.print("Anulowano wczytywanie dokumentów.")
+        return
     console.print(f"Wczytywanie dokumentów do projektu: {project.name}...")
     file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs())
     
