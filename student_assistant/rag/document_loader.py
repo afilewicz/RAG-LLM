@@ -16,14 +16,16 @@ logger = get_logger(__name__)
 async def load_and_chunk_docs():
     data_path = Path(settings.DATA_DIR_PATH)
     tasks = []
+    file_names = []
 
     for file in data_path.glob("*"):
         if file.suffix in {".pdf"}:
             tasks.append(load_and_chunk_pdf(file.name))
+            file_names.append(file.name)
 
     loaded_docs = await asyncio.gather(*tasks)
 
-    return list(chain.from_iterable(loaded_docs))
+    return list(chain.from_iterable(loaded_docs)), file_names
 
 
 async def load_and_chunk_pdf(file_name: str):

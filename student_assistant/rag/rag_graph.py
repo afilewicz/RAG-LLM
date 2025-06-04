@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START
 
-from student_assistant.vector_store import vector_store
+from student_assistant.rag.vector_store import VectorStore
 from student_assistant.core.config import settings
 from student_assistant.core.logging import get_logger
 from student_assistant.prompts import prompt
@@ -18,9 +18,11 @@ class State(TypedDict):
     question: str
     context: list[Document]
     answer: str
+    vector_store: VectorStore
 
 
 def retrieve(state: State):
+    vector_store = state.get("vector_store")
     retrieved_docs = vector_store.similarity_search(state["question"])
     logger.info(f"Retreived {len(retrieved_docs)} documents for question: {state['question']}")
     return {"context": retrieved_docs}
