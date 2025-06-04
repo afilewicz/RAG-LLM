@@ -29,12 +29,47 @@ def main():
         project = select_project_loop(db)
         project_session(db, project)
 
+
 def select_project_loop(db: ProjectDB) -> Project:
     project_names = db.list_projects()
     project_name, is_new = choose_project(project_names)
     if is_new:
         db.create_project(project_name)
     return db.get_project_by_name(project_name)
+
+
+def handle_load_documents(project, db):
+    load_documents()
+    console.print(f"Wczytywanie dokumentów do projektu: {project.name}...")
+    file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs())
+    
+    for file_name in loaded_file_names:
+        db.add_document(project.id, file_name)
+    
+    project.add_documents(file_splits)
+    console.print(f"Liczba wczytanych dokumentów: {len(loaded_file_names)}")
+
+
+def handle_view_documents(project, db):
+    documents = db.list_documents(project.id)
+    if documents:
+        console.print("Wczytane dokumenty:")
+        for doc in documents:
+            console.print(f"- {doc}")
+    else:
+        console.print("Brak wczytanych dokumentów.")
+
+
+def handle_delete_project(project, db) -> bool:
+    confirm = confirm_project_deletion(project.name)
+    if confirm:
+        db.delete_project(project.id)
+        console.print(f"Projekt '{project.name}' został usunięty.")
+        return True
+    else:
+        console.print("Nie usunięto projektu.")
+        return False
+
 
 def project_session(db: ProjectDB, project: Project):
     while True:
@@ -47,32 +82,14 @@ def project_session(db: ProjectDB, project: Project):
             return 
 
         elif option == "📄 Wczytaj dokumenty":
-            load_documents()
-            console.print(f"Wczytywanie dokumentów do projektu: {project.name}...")
-            file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs())
-            for file_name in loaded_file_names:
-                db.add_document(project.id, file_name)
-            project.add_documents(file_splits)
-            console.print(f"Liczba wczytanych dokumentów: {len(loaded_file_names)}")
+            handle_load_documents(project, db)
 
         elif option == "📖 Zobacz wczytane dokumenty":
-            documents = db.list_documents(project.id)
-            if documents:
-                console.print("Wczytane dokumenty:")
-                for doc in documents:
-                    console.print(f"- {doc}")
-            else:
-                console.print("Brak wczytanych dokumentów.")
-        
+            handle_view_documents(project, db)
+            
         elif option == "🗑️  Usuń projekt":
-            confirm = confirm_project_deletion(project.name)
-
-            if confirm:
-                db.delete_project(project.id)
-                console.print(f"Projekt '{project.name}' został usunięty.")
-                return 
-            else:
-                console.print("Nie usunięto projektu.")
+            handle_delete_project(project, db)
+        
         elif option == "❓ Zadaj pytanie":
             ask_questions_loop(project.vector_store)
 
