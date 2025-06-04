@@ -16,7 +16,7 @@ from student_assistant.CLI import (
 )
 from student_assistant.project import Project
 from student_assistant.rag.vector_store import VectorStore
-
+from langchain_core.messages import AIMessage, HumanMessage
 
 logger = get_logger(__name__)
 
@@ -28,6 +28,13 @@ def main():
     while True:
         project = select_project_loop(db)
         project_session(db, project)
+    # input_message = "Jakie są funkcje MUA?"
+    #
+    # for step in graph.stream(
+    #         {"messages": [{"role": "user", "content": input_message}]},
+    #         stream_mode="values",
+    # ):
+    #     step["messages"][-1].pretty_print()
 
 
 def select_project_loop(db: ProjectDB) -> Project:
@@ -107,14 +114,26 @@ def ask_questions_loop(vector_store: VectorStore):
             console.print("Zakończono sesję pytań")
             break
 
-        state = {"question": question, "context": [], "answer": "", "vector_store": vector_store}
-        result = graph.invoke(state)
-        answer = result["answer"]
+        messages = [HumanMessage(content=question)]
 
-        if answer:
-            console.print(Markdown("**Odpowiedź asystenta:**"))
-            console.print(Markdown(answer))
-            console.print("\n---\n")
+        state = {
+            "messages": messages,
+            "vector_store": vector_store,
+        }
+
+        result = graph.invoke(state)
+
+        answer_message = result.get("messages", [])
+
+        if isinstance(answer_message, AIMessage):
+            console.print(Markdown("**Odpowiedź AI:**"))
+            console.print(Markdown(answer_message.content))
+        elif answer_message.__class__.__name__ == "ToolMessage":
+            console.print(Markdown("**Odpowiedź z narzędzia (Tool):**"))
+            console.print(Markdown(answer_message.content))
+        else:
+            console.print(Markdown("**Odpowiedź nieznanego typu:**"))
+            console.print(Markdown(answer_message.content))
         
 
 if __name__ == "__main__":
