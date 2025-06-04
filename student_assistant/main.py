@@ -38,6 +38,29 @@ def select_project_loop(db: ProjectDB) -> Project:
     return db.get_project_by_name(project_name)
 
 
+def project_session(db: ProjectDB, project: Project):
+    while True:
+        option = choose_project_option()
+
+        if option == "❌ Wyjdź":
+            raise SystemExit()
+
+        elif option == "🔄 Zmień projekt":
+            return 
+
+        elif option == "📄 Wczytaj dokumenty":
+            handle_load_documents(project, db)
+
+        elif option == "📖 Zobacz wczytane dokumenty":
+            handle_view_documents(project, db)
+            
+        elif option == "🗑️  Usuń projekt":
+            handle_delete_project(project, db)
+        
+        elif option == "❓ Zadaj pytanie":
+            ask_questions_loop(project.vector_store)
+
+
 def handle_load_documents(project, db):
     load_documents()
     console.print(f"Wczytywanie dokumentów do projektu: {project.name}...")
@@ -71,35 +94,12 @@ def handle_delete_project(project, db) -> bool:
         return False
 
 
-def project_session(db: ProjectDB, project: Project):
-    while True:
-        option = choose_project_option()
-
-        if option == "❌ Wyjdź":
-            raise SystemExit()
-
-        elif option == "🔄 Zmień projekt":
-            return 
-
-        elif option == "📄 Wczytaj dokumenty":
-            handle_load_documents(project, db)
-
-        elif option == "📖 Zobacz wczytane dokumenty":
-            handle_view_documents(project, db)
-            
-        elif option == "🗑️  Usuń projekt":
-            handle_delete_project(project, db)
-        
-        elif option == "❓ Zadaj pytanie":
-            ask_questions_loop(project.vector_store)
-
-
 def ask_questions_loop(vector_store: VectorStore):
     while True:
         question = new_question()
 
         if not question.strip():
-            console.print("[grey]Zakończono sesję pytań.[/grey]")
+            console.print("Zakończono sesję pytań")
             break
 
         state = {"question": question, "context": [], "answer": "", "vector_store": vector_store}
