@@ -5,6 +5,8 @@ from pathlib import Path
 from itertools import chain
 
 import asyncio
+import io
+import contextlib
 
 from student_assistant.core.config import settings
 from student_assistant.core.logging import get_logger
@@ -36,7 +38,8 @@ async def load_and_chunk_pdf(file_name: str):
         images_parser=RapidOCRBlobParser()
     )
 
-    pages = [page async for page in loader.alazy_load()]
+    with contextlib.redirect_stderr(io.StringIO()):
+        pages = [page async for page in loader.alazy_load()]
 
     logger.info(f"Loaded {len(pages)} pages from {file_name}.")
     

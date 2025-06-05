@@ -78,14 +78,16 @@ def handle_load_documents(project, db):
         console.print("❗ [red]Brak dokumentów do wczytania w katalogu data.[/red]")
         return
 
-    console.print(f"Wczytywanie dokumentów do projektu: {project.name}...")
-    file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs())
+    spinner = Spinner("dots", text=f"Wczytywanie dokumentów do projektu: {project.name}...")
     
+    with Live(spinner, refresh_per_second=10):
+        file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs())
+
     for file_name in loaded_file_names:
         db.add_document(project.id, file_name)
-    
+
     project.add_documents(file_splits)
-    console.print(f"Liczba wczytanych dokumentów: {len(loaded_file_names)}")
+    console.print(f"[green]✅ Liczba wczytanych dokumentów: {len(loaded_file_names)}[/green]")
 
 
 def handle_manage_documents(project, db):
