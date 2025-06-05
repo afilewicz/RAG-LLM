@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-3-large"
     DATA_DIR_PATH: str = "data"
 
-    LOGGING_ENABLED: bool = True
+    LOGGING_ENABLED: bool = False
 
 
 load_dotenv()
