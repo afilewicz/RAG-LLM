@@ -1,5 +1,7 @@
 import logging
 
+from student_assistant.core.config import settings
+
 
 def get_logger(name: str, log_level=logging.INFO) -> logging.Logger:
     """
@@ -9,6 +11,10 @@ def get_logger(name: str, log_level=logging.INFO) -> logging.Logger:
     logger = logging.getLogger(name)
 
     if logger.handlers:
+        return logger
+
+    if not settings.LOGGING_ENABLED:
+        logger.addHandler(logging.NullHandler())
         return logger
 
     logger.setLevel(log_level)

@@ -1,7 +1,10 @@
 import asyncio
 
+from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.spinner import Spinner
+from rich.live import Live
 
 from student_assistant.rag.document_loader import load_and_chunk_docs
 from student_assistant.core.logging import get_logger
@@ -12,10 +15,13 @@ from student_assistant.CLI import (
     choose_project_option,
     load_documents,
     confirm_project_deletion,
-    new_question
+    new_question,
+    ask_document_to_remove,
+    confirm_document_removal,
 )
 from student_assistant.project import Project
 from student_assistant.rag.vector_store import VectorStore
+from student_assistant.core.config import settings
 
 
 logger = get_logger(__name__)
@@ -51,23 +57,27 @@ def project_session(db: ProjectDB, project: Project):
         elif option == "📄 Wczytaj dokumenty":
             handle_load_documents(project, db)
 
-        elif option == "📖 Zobacz wczytane dokumenty":
-            handle_view_documents(project, db)
+        elif option == "📖 Przeglądaj dokumenty":
+            handle_manage_documents(project, db)
             
         elif option == "🗑️  Usuń projekt":
             if handle_delete_project(project, db):
                 return
 
-        
         elif option == "❓ Zadaj pytanie":
             ask_questions_loop(project.vector_store)
 
 
 def handle_load_documents(project, db):
-    result = load_documents()
+    result = load_documents()[0]
     if result == "❌ Anuluj":
-        console.print("Anulowano wczytywanie dokumentów.")
+        console.print("[green]Anulowano wczytywanie dokumentów.[/green]")
         return
+
+    if not any(Path(settings.DATA_DIR_PATH).iterdir()):
+        console.print("❗ [red]Brak dokumentów do wczytania w katalogu data.[/red]")
+        return
+
     console.print(f"Wczytywanie dokumentów do projektu: {project.name}...")
     file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs())
     
@@ -78,14 +88,24 @@ def handle_load_documents(project, db):
     console.print(f"Liczba wczytanych dokumentów: {len(loaded_file_names)}")
 
 
-def handle_view_documents(project, db):
-    documents = db.list_documents(project.id)
-    if documents:
-        console.print("Wczytane dokumenty:")
-        for doc in documents:
-            console.print(f"- {doc}")
-    else:
-        console.print("Brak wczytanych dokumentów.")
+def handle_manage_documents(project, db):
+    while True:
+        documents = db.list_documents(project.id)
+
+        if not documents:
+            console.print("Brak wczytanych dokumentów.")
+            return
+
+        selected = ask_document_to_remove(documents)
+
+        if selected == "↩️  Powrót":
+            return
+
+        if confirm_document_removal(selected):
+            db.delete_document(project.id, selected)
+            console.print(f"✅ Dokument '{selected}' został usunięty.")
+        else:
+            console.print("❎ Anulowano usunięcie.")
 
 
 def handle_delete_project(project, db) -> bool:
@@ -108,7 +128,10 @@ def ask_questions_loop(vector_store: VectorStore):
             break
 
         state = {"question": question, "context": [], "answer": "", "vector_store": vector_store}
-        result = graph.invoke(state)
+        
+        with Live(Spinner("dots", text="Generowanie odpowiedzi..."), refresh_per_second=10):
+            result = graph.invoke(state)
+        
         answer = result["answer"]
 
         if answer:
