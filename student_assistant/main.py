@@ -5,10 +5,11 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.spinner import Spinner
 from rich.live import Live
+from langchain_core.messages import HumanMessage
 
 from student_assistant.rag.document_loader import load_and_chunk_docs
 from student_assistant.core.logging import get_logger
-from student_assistant.rag.rag_graph import graph
+from student_assistant.rag.graph.rag_graph import graph
 from student_assistant.db import ProjectDB
 from student_assistant.CLI import (
     choose_project,
@@ -65,7 +66,7 @@ def project_session(db: ProjectDB, project: Project):
                 return
 
         elif option == "❓ Zadaj pytanie":
-            ask_questions_loop(project.vector_store)
+            ask_questions_loop(project.vector_store, project.name)
 
 
 def handle_load_documents(project, db):
@@ -78,14 +79,16 @@ def handle_load_documents(project, db):
         console.print("❗ [red]Brak dokumentów do wczytania w katalogu data.[/red]")
         return
 
-    console.print(f"Wczytywanie dokumentów do projektu: {project.name}...")
-    file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs())
+    spinner = Spinner("dots", text=f"Wczytywanie dokumentów do projektu: {project.name}...")
     
+    with Live(spinner, refresh_per_second=10):
+        file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs(project.name))
+
     for file_name in loaded_file_names:
         db.add_document(project.id, file_name)
-    
+
     project.add_documents(file_splits)
-    console.print(f"Liczba wczytanych dokumentów: {len(loaded_file_names)}")
+    console.print(f"[green]✅ Liczba wczytanych dokumentów: {len(loaded_file_names)}[/green]")
 
 
 def handle_manage_documents(project, db):
@@ -119,7 +122,7 @@ def handle_delete_project(project, db) -> bool:
         return False
 
 
-def ask_questions_loop(vector_store: VectorStore):
+def ask_questions_loop(vector_store: VectorStore, project_name: str):
     while True:
         question = new_question()
 
@@ -127,12 +130,14 @@ def ask_questions_loop(vector_store: VectorStore):
             console.print("Zakończono sesję pytań")
             break
 
-        state = {"question": question, "context": [], "answer": "", "vector_store": vector_store}
+        state = {"messages": [HumanMessage(content=question)]}
+
+        config = {"configurable": {"thread_id": project_name, "vector_store": vector_store}}
         
         with Live(Spinner("dots", text="Generowanie odpowiedzi..."), refresh_per_second=10):
-            result = graph.invoke(state)
+            result = graph.invoke(state, config=config)
         
-        answer = result["answer"]
+        answer = result["messages"][-1].content
 
         if answer:
             console.print(Markdown("**Odpowiedź asystenta:**"))
