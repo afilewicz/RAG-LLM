@@ -5,7 +5,8 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.spinner import Spinner
 from rich.live import Live
-from langchain_core.messages import HumanMessage
+from rich.panel import Panel
+from langchain_core.messages import HumanMessage, BaseMessage, AIMessage
 
 from student_assistant.rag.document_loader import load_and_chunk_docs
 from student_assistant.core.logging import get_logger
@@ -19,9 +20,13 @@ from student_assistant.CLI import (
     new_question,
     ask_document_to_remove,
     confirm_document_removal,
+    render_chat_history,
+    render_user_message_panel,
+    render_assistant_message_panel
 )
 from student_assistant.project import Project
 from student_assistant.rag.vector_store import VectorStore
+from student_assistant.rag.memory import history_manager
 from student_assistant.core.config import settings
 
 
@@ -67,6 +72,10 @@ def project_session(db: ProjectDB, project: Project):
 
         elif option == "❓ Zadaj pytanie":
             ask_questions_loop(project.vector_store, project.name)
+        
+        elif option == "🧹 Wyczyść historię czatu":
+            history_manager.clear(project.name)
+            console.print("[green]✅ Historia czatu została wyczyszczona.[/green]")
 
 
 def handle_load_documents(project, db):
@@ -120,29 +129,32 @@ def handle_delete_project(project, db) -> bool:
     else:
         console.print("Nie usunięto projektu.")
         return False
+    
 
 
 def ask_questions_loop(vector_store: VectorStore, project_name: str):
+    config = {"configurable": {"thread_id": project_name, "vector_store": vector_store}}
+        
+    message_history = history_manager.get_message_history(config)
+    render_chat_history(console, message_history)
+
     while True:
         question = new_question()
-
+        
         if not question.strip():
             console.print("Zakończono sesję pytań")
             break
 
+        render_user_message_panel(question, console)
         state = {"messages": [HumanMessage(content=question)]}
 
-        config = {"configurable": {"thread_id": project_name, "vector_store": vector_store}}
-        
         with Live(Spinner("dots", text="Generowanie odpowiedzi..."), refresh_per_second=10):
             result = graph.invoke(state, config=config)
         
         answer = result["messages"][-1].content
 
         if answer:
-            console.print(Markdown("**Odpowiedź asystenta:**"))
-            console.print(Markdown(answer))
-            console.print("\n---\n")
+            render_assistant_message_panel(answer, console)
         
 
 if __name__ == "__main__":
