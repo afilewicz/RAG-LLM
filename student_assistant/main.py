@@ -81,7 +81,7 @@ def handle_load_documents(project, db):
     spinner = Spinner("dots", text=f"Wczytywanie dokumentów do projektu: {project.name}...")
     
     with Live(spinner, refresh_per_second=10):
-        file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs())
+        file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs(project.name))
 
     for file_name in loaded_file_names:
         db.add_document(project.id, file_name)

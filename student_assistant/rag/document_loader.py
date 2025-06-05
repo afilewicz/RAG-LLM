@@ -7,6 +7,7 @@ from itertools import chain
 import asyncio
 import io
 import contextlib
+import shutil
 
 from student_assistant.core.config import settings
 from student_assistant.core.logging import get_logger
@@ -15,17 +16,25 @@ from student_assistant.core.logging import get_logger
 logger = get_logger(__name__)
 
 
-async def load_and_chunk_docs():
+async def load_and_chunk_docs(project_name: str):
     data_path = Path(settings.DATA_DIR_PATH)
     tasks = []
     file_names = []
+    files_to_move = []
 
     for file in data_path.glob("*"):
-        if file.suffix in {".pdf"}:
+        if file.suffix == ".pdf":
             tasks.append(load_and_chunk_pdf(file.name))
             file_names.append(file.name)
+            files_to_move.append(file)
 
     loaded_docs = await asyncio.gather(*tasks)
+
+    target_dir = Path(f"loaded_docs/{project_name}")
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    for file in files_to_move:
+        shutil.move(str(file), str(target_dir / file.name))
 
     return list(chain.from_iterable(loaded_docs)), file_names
 
