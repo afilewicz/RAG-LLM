@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field
 from typing import Literal
 from langchain_openai import ChatOpenAI
+from langgraph.graph import MessagesState
 
-from student_assistant.rag.vector_store import VectorStore
 from student_assistant.core.config import settings
 from student_assistant.core.logging import get_logger
 from student_assistant.prompts import SYSTEM_PROMPT, GRADE_PROMPT, REWRITE_PROMPT
@@ -37,7 +37,7 @@ class GradeDocuments(BaseModel):
 
 
 def grade_documents(state: State) -> Literal["generate_answer", "rewrite_question"]:
-    # logger.info(f"grade_documents called with messages: {state["messages"]}")
+    logger.info(f"grade_documents called with messages: {state["messages"]}")
     question = state["messages"][0].content
     context = state["messages"][-1].content
 
@@ -50,7 +50,7 @@ def grade_documents(state: State) -> Literal["generate_answer", "rewrite_questio
 
 
 def rewrite_question(state: State) -> State:
-    # logger.info(f"rewrite_question called with messages: {state["messages"]}")
+    logger.info(f"rewrite_question called with messages: {state["messages"]}")
     messages = state["messages"]
     question = messages[0].content
 
@@ -61,7 +61,7 @@ def rewrite_question(state: State) -> State:
 
 
 def generate_answer(state: State) -> State:
-    # logger.info(f"generate_answer called with messages: {state["messages"]}")
+    logger.info(f"generate_answer called with messages: {state["messages"]}")
     question = state["messages"][0].content
     context = state["messages"][-1].content
 

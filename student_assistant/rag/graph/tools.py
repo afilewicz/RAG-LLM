@@ -1,5 +1,10 @@
 from langchain_core.runnables import RunnableConfig
-from langchain_core.messages import Document
+from langchain_core.documents import Document
+
+from student_assistant.core.logging import get_logger
+
+
+logger = get_logger(__name__)
 
 
 def retreive(query: str, config: RunnableConfig) -> list[Document]:
