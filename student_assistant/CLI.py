@@ -12,7 +12,7 @@ def enter_new_project_name(existing_names: list) -> str:
 
 
 def choose_project(project_names: list[str]) -> tuple[str, bool]:
-    choices = project_names + [Separator(), "➕ Utwórz nowy projekt", "❌ Wyjdź"]
+    choices = [Separator(), *project_names, Separator(), "➕ Utwórz nowy projekt", "❌ Wyjdź"]
     selected = inquirer.select(
         message="Wybierz projekt lub utwórz nowy:",
         choices=choices,
@@ -31,8 +31,9 @@ def choose_project(project_names: list[str]) -> tuple[str, bool]:
 
 def choose_project_option() -> str:
     choices = [
+        Separator(),
         "📄 Wczytaj dokumenty",
-        "📖 Zobacz wczytane dokumenty",
+        "📖 Przeglądaj dokumenty",
         "❓ Zadaj pytanie",
         "🔄 Zmień projekt",
         "🗑️  Usuń projekt",
@@ -65,3 +66,19 @@ def new_question() -> str:
     return inquirer.text(
             message="Zadaj pytanie (pozostaw puste i naciśnij Enter, aby zakończyć):"
         ).execute()
+
+
+def ask_document_to_remove(documents: list[str]) -> str:
+    choices = [Separator(), *documents, Separator(),"↩️  Powrót"]
+    return inquirer.select(
+        message="Jeżeli chcesz usunąć dokument, zaznacz go i kliknij Enter:",
+        choices=choices,
+        default=0,
+    ).execute()
+
+
+def confirm_document_removal(document_name: str) -> bool:
+    return inquirer.confirm(
+        message=f"Czy na pewno chcesz usunąć dokument '{document_name}'?",
+        default=True
+    ).execute()

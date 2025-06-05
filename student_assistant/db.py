@@ -64,6 +64,12 @@ class ProjectDB:
             cursor.execute("DELETE FROM projects WHERE id = ?", (project_id,))
             cursor.execute("DELETE FROM documents WHERE project_id = ?", (project_id,))
             conn.commit()
+    
+    def delete_document(self, project_id: int, document_name: str):
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM documents WHERE project_id = ? AND name = ?", (project_id, document_name))
+            conn.commit()
 
     def _connect(self):
         return sqlite3.connect(self.db_path)
