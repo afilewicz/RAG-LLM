@@ -17,10 +17,32 @@ from student_assistant.CLI import (
 from student_assistant.project import Project
 from student_assistant.rag.vector_store import VectorStore
 from langchain_core.messages import AIMessage, HumanMessage
+from student_assistant.rag.rag_graph import State
 
 logger = get_logger(__name__)
 
 console = Console()
+
+
+def test_vectorstore_directly(project_name: str, test_query: str):
+    db = ProjectDB()
+    project = db.get_project_by_name(project_name)
+
+    vector_store = project.vector_store  # <-- upewniamy się, że to dokładnie ta instancja
+
+    console.print(f"[bold green]Szukamy dla projektu:[/bold green] {project_name}")
+    console.print(f"[bold green]Zapytanie:[/bold green] {test_query}")
+
+    results = vector_store.similarity_search(test_query, k=2)
+
+    if not results:
+        console.print("[red]Brak wyników z VectorStore![/red]")
+        return
+
+    for i, doc in enumerate(results, 1):
+        console.print(Markdown(f"### Dokument {i}"))
+        console.print(Markdown(f"**Źródło:** {doc.metadata}"))
+        console.print(Markdown(doc.page_content[:500] + "..."))
 
 
 def main():
@@ -28,13 +50,6 @@ def main():
     while True:
         project = select_project_loop(db)
         project_session(db, project)
-    # input_message = "Jakie są funkcje MUA?"
-    #
-    # for step in graph.stream(
-    #         {"messages": [{"role": "user", "content": input_message}]},
-    #         stream_mode="values",
-    # ):
-    #     step["messages"][-1].pretty_print()
 
 
 def select_project_loop(db: ProjectDB) -> Project:
@@ -116,14 +131,29 @@ def ask_questions_loop(vector_store: VectorStore):
 
         messages = [HumanMessage(content=question)]
 
+        console.print(f"[bold green]Szukamy dla projektu:[/bold green] {vector_store.project_name}")
+        console.print(f"[bold green]Zapytanie:[/bold green] {question}")
+
+        results = vector_store.similarity_search(question, k=2)
+
+        for i, doc in enumerate(results, 1):
+            console.print(Markdown(f"### Dokument {i}"))
+            console.print(Markdown(f"**Źródło:** {doc.metadata}"))
+            console.print(Markdown(doc.page_content[:500] + "..."))
+
         state = {
-            "messages": messages,
             "vector_store": vector_store,
+            "messages": messages,
+            "question": question,
+            "context": results,
+            "answer": ""
         }
+
+        # state = {"question": question, "context": [], "answer": "", "vector_store": vector_store}
 
         result = graph.invoke(state)
 
-        answer_message = result.get("messages", [])
+        answer_message = result.get("messages", [])[-1]
 
         if isinstance(answer_message, AIMessage):
             console.print(Markdown("**Odpowiedź AI:**"))
