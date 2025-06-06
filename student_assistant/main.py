@@ -1,4 +1,6 @@
 import asyncio
+import os
+import pathlib
 
 from pathlib import Path
 from rich.console import Console
@@ -7,6 +9,7 @@ from rich.spinner import Spinner
 from rich.live import Live
 from rich.panel import Panel
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage
+import shutil
 
 from student_assistant.rag.document_loader import load_and_chunk_docs, load_and_chunk_website
 from student_assistant.core.logging import get_logger
@@ -138,6 +141,7 @@ def handle_delete_project(project, db) -> bool:
     confirm = confirm_project_deletion(project.name)
     if confirm:
         db.delete_project(project.id)
+        shutil.rmtree("loaded_docs/" + project.name, ignore_errors=True)
         console.print(f"Projekt '{project.name}' został usunięty.")
         return True
     else:
