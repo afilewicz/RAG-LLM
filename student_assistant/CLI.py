@@ -1,6 +1,11 @@
 from InquirerPy import inquirer
 from InquirerPy.separator import Separator
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+from langchain_core.messages import HumanMessage, BaseMessage, AIMessage
 from student_assistant.core.config import settings
+
 
 
 def enter_new_project_name(existing_names: list) -> str:
@@ -34,7 +39,10 @@ def choose_project_option() -> str:
         Separator(),
         "📄 Wczytaj dokumenty",
         "📖 Przeglądaj dokumenty",
+        Separator(),
         "❓ Zadaj pytanie",
+        "🧹 Wyczyść historię czatu",
+        Separator(),
         "🔄 Zmień projekt",
         "🗑️  Usuń projekt",
         Separator(),
@@ -82,3 +90,45 @@ def confirm_document_removal(document_name: str) -> bool:
         message=f"Czy na pewno chcesz usunąć dokument '{document_name}'?",
         default=True
     ).execute()
+
+
+def render_user_message_panel(content: str, console: Console):
+    console.print(
+        Panel(
+            content.strip(),
+            title="🧑 Ty",
+            title_align="left",
+            border_style="bold cyan",
+            padding=(1, 2)
+        )
+    )
+
+
+def render_assistant_message_panel(content: str, console: Console):
+    console.print(
+        Panel(
+            Markdown(content.strip()),
+            title="🤖 Asystent",
+            title_align="left",
+            border_style="bold green",
+            padding=(1, 2)
+        )
+    )
+
+
+def render_chat_history(console: Console, messages: list[BaseMessage]):
+    for msg in messages:
+        if isinstance(msg, HumanMessage):
+            render_user_message_panel(msg.content, console)
+        elif isinstance(msg, AIMessage):
+            render_assistant_message_panel(msg.content, console)
+        else:
+            console.print(
+                Panel(
+                    Markdown(msg.content.strip()),
+                    title=f"🔸 {msg.role}",
+                    title_align="left",
+                    border_style="bold yellow",
+                    padding=(1, 2)
+                )
+            )

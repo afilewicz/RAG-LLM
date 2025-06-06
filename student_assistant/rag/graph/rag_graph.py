@@ -1,7 +1,5 @@
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
-from langgraph.checkpoint.sqlite import SqliteSaver
-import sqlite3
 
 from student_assistant.rag.graph.nodes import (
     generate_query_or_respond,
@@ -11,6 +9,7 @@ from student_assistant.rag.graph.nodes import (
     State
 )
 from student_assistant.rag.graph.tools import retreive
+from student_assistant.rag.memory import history_manager
 
 
 workflow = StateGraph(State)
@@ -38,10 +37,7 @@ workflow.add_conditional_edges(
 workflow.add_edge("generate_answer", END)
 workflow.add_edge("rewrite_question", "generate_query_or_respond")
 
-conn = sqlite3.connect("sqlite/graph_checkpoints.db", check_same_thread=False)
-checkpointer = SqliteSaver(conn)
+graph = workflow.compile(checkpointer=history_manager.checkpointer)
 
-graph = workflow.compile(checkpointer=checkpointer)
-
-with open("graph_visualization.png", "wb") as f:
-    f.write(graph.get_graph().draw_mermaid_png())
+# with open("graph_visualization.png", "wb") as f:
+#     f.write(graph.get_graph().draw_mermaid_png())
