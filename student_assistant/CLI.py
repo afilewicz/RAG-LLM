@@ -58,8 +58,11 @@ def choose_project_option() -> str:
 
 def load_documents():
     return inquirer.select(
-        message=f"Umieść dokumenty w katalogu {settings.DATA_DIR_PATH} i naciśnij Enter, aby kontynuować.",
-        choices=["📂 Wczytaj dokumenty", "❌ Anuluj"]
+        message="Jakie dokumenty chcesz wczytać?",
+        choices=[
+            "📄 Wczytaj z katalogu 'data/'",
+            "🌐 Wczytaj z URL",
+            "❌ Anuluj"]
         ).execute(),
 
 

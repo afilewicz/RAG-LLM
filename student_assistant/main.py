@@ -1,4 +1,6 @@
 import asyncio
+import os
+import pathlib
 
 from pathlib import Path
 from rich.console import Console
@@ -7,8 +9,9 @@ from rich.spinner import Spinner
 from rich.live import Live
 from rich.panel import Panel
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage
+import shutil
 
-from student_assistant.rag.document_loader import load_and_chunk_docs
+from student_assistant.rag.document_loader import load_and_chunk_docs, load_and_chunk_website
 from student_assistant.core.logging import get_logger
 from student_assistant.rag.graph.rag_graph import graph
 from student_assistant.db import ProjectDB
@@ -84,20 +87,34 @@ def handle_load_documents(project, db):
         console.print("[green]Anulowano wczytywanie dokumentów.[/green]")
         return
 
-    if not any(Path(settings.DATA_DIR_PATH).iterdir()):
-        console.print("❗ [red]Brak dokumentów do wczytania w katalogu data.[/red]")
-        return
+    elif result == "🌐 Wczytaj z URL":
+        url = console.input("🔗 Podaj URL do załadowania: ").strip()
+        if not url:
+            console.print("[red]❗ Nie podano URL.[/red]")
+            return
 
-    spinner = Spinner("dots", text=f"Wczytywanie dokumentów do projektu: {project.name}...")
-    
-    with Live(spinner, refresh_per_second=10):
-        file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs(project.name))
+        spinner = Spinner("dots", text=f"Wczytywanie strony {url}...")
+        with Live(spinner, refresh_per_second=10):
+            file_splits = asyncio.run(load_and_chunk_website(url))
 
-    for file_name in loaded_file_names:
-        db.add_document(project.id, file_name)
+        project.add_documents(file_splits)
+        console.print(f"[green]✅ Załadowano stronę i podzielono na {len(file_splits)} chunków.[/green]")
 
-    project.add_documents(file_splits)
-    console.print(f"[green]✅ Liczba wczytanych dokumentów: {len(loaded_file_names)}[/green]")
+    else:
+        if not any(Path(settings.DATA_DIR_PATH).iterdir()) or not any(Path(settings.DATA_DIR_PATH).glob("*.pdf")):
+            console.print("❗ [red]Brak dokumentów z rozszerzeniem .pdf do wczytania w katalogu data.[/red]")
+            return
+
+        spinner = Spinner("dots", text=f"Wczytywanie dokumentów do projektu: {project.name}...")
+
+        with Live(spinner, refresh_per_second=10):
+            file_splits, loaded_file_names = asyncio.run(load_and_chunk_docs(project.name))
+
+        for file_name in loaded_file_names:
+            db.add_document(project.id, file_name)
+
+        project.add_documents(file_splits)
+        console.print(f"[green]✅ Liczba wczytanych dokumentów: {len(loaded_file_names)}[/green]")
 
 
 def handle_manage_documents(project, db):
@@ -124,6 +141,7 @@ def handle_delete_project(project, db) -> bool:
     confirm = confirm_project_deletion(project.name)
     if confirm:
         db.delete_project(project.id)
+        shutil.rmtree("loaded_docs/" + project.name, ignore_errors=True)
         console.print(f"Projekt '{project.name}' został usunięty.")
         return True
     else:
