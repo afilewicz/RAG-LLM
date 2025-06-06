@@ -1,11 +1,13 @@
 from langchain.prompts import ChatPromptTemplate
+from langchain_core.messages import SystemMessage
 
 
 SYSTEM_PROMPT = ChatPromptTemplate.from_messages(
     [
-        ("system", "Jesteś pomocnym asystentem studenta. Odpowiadasz na jego pytania wykorzystując wyciągnięte informacje z dokumentów, chyba że użytkownik poprosi inaczej. \
-         Jeżeli czegoś nie ma w dokumentach napisz że nie ma tej informacji w dostarczonych dokumentach. Jeżeli odpowiedź jest zawarta w dokumentach, \
-         ale uważasz, że mógłbyś ją rozwinąć, to dodać możesz dodatkowe informacje. Podziel wtedy odpowiedź na dwie części tę z informacją z dokumentów i tę z twoimi informacjami"), \
+        ("system", "Jesteś pomocnym asystentem studenta. Odpowiadasz na jego pytania wykorzystując wyciągnięte informacje z dokumentów.\
+         Rozdziel wyraźnie odpowiedź na dwie sekcje: \n \
+                   - informację tylko z dokumentów \n \
+                   - jeśli informacje były niepełne, sekcję z twoimi informacjami."),
         ("human", "Pytanie: {question}"),
         ("human", "Kontekst: {context}")
     ]
@@ -24,6 +26,13 @@ GRADE_PROMPT = ChatPromptTemplate.from_messages(
             )
         )
     ]
+)
+
+SYSTEM_MESSAGE = SystemMessage(
+    content="Jesteś pomocnym asystentem studenta. Odpowiadasz na jego pytania wykorzystując wyciągnięte informacje z dokumentów.\
+         Rozdziel wyraźnie odpowiedź na dwie sekcje: \n \
+                   - informację tylko z dokumentów \n \
+                   - jeśli informacje były niepełne, sekcję z twoimi informacjami."
 )
 
 REWRITE_PROMPT = ChatPromptTemplate.from_messages(

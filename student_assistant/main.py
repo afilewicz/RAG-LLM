@@ -11,7 +11,7 @@ from rich.panel import Panel
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage
 import shutil
 
-from student_assistant.prompts import SYSTEM_PROMPT
+from student_assistant.prompts import SYSTEM_PROMPT, SYSTEM_MESSAGE
 from student_assistant.rag.document_loader import load_and_chunk_docs, load_and_chunk_website
 from student_assistant.core.logging import get_logger
 from student_assistant.rag.graph.rag_graph import graph
@@ -99,7 +99,7 @@ def handle_load_documents(project, db):
             file_splits = asyncio.run(load_and_chunk_website(url))
 
         project.add_documents(file_splits)
-        console.print(f"[green]✅ Załadowano stronę i podzielono na {len(file_splits)} chunków.[/green]")
+        console.print(f"[green]✅ Załadowano stronę. [/green]")
 
     else:
         if not any(Path(settings.DATA_DIR_PATH).iterdir()) or not any(Path(settings.DATA_DIR_PATH).glob("*.pdf")):
@@ -165,8 +165,7 @@ def ask_questions_loop(vector_store: VectorStore, project_name: str):
 
         render_user_message_panel(question, console)
 
-        system_messages = SYSTEM_PROMPT.format_prompt(question=question, context="").to_messages()
-        messages = system_messages + [HumanMessage(content=question)]
+        messages = [SYSTEM_MESSAGE, HumanMessage(content=question)]
 
         state = {"messages": messages}
 
