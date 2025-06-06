@@ -1,4 +1,4 @@
-from langchain_community.document_loaders import TextLoader, PyPDFLoader
+from langchain_community.document_loaders import TextLoader, PyPDFLoader, WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders.parsers.images import RapidOCRBlobParser
 from pathlib import Path
@@ -38,17 +38,34 @@ async def load_and_chunk_docs(project_name: str):
 
     return list(chain.from_iterable(loaded_docs)), file_names
 
+class SafeRapidOCRBlobParser(RapidOCRBlobParser):
+    def extract_images_from_page(self, page):
+        try:
+            return super().extract_images_from_page(page)
+        except Exception as e:
+            logger.warning(f"Error extracting images from page {page.page_number}: {e}")
+            return []
 
 async def load_and_chunk_pdf(file_name: str):
     loader = PyPDFLoader(
         f"{settings.DATA_DIR_PATH}/{file_name}", 
         extract_images=True,
-        images_inner_format="mardkdown-img",
-        images_parser=RapidOCRBlobParser()
+        images_inner_format="markdown-img",
+        images_parser=SafeRapidOCRBlobParser()
     )
 
     with contextlib.redirect_stderr(io.StringIO()):
-        pages = [page async for page in loader.alazy_load()]
+        pages = []
+        agen = loader.alazy_load()
+        while True:
+            try:
+                page = await agen.__anext__()
+            except StopAsyncIteration:
+                break
+            except Exception as e:
+                logger.warning(f"Error loading page: {e}")
+                continue
+            pages.append(page)
 
     logger.info(f"Loaded {len(pages)} pages from {file_name}.")
     
@@ -56,4 +73,18 @@ async def load_and_chunk_pdf(file_name: str):
     pages = text_splitter.split_documents(pages)
     
     logger.info(f"Split {file_name} into {len(pages)} chunks.")
+    return pages
+
+async def load_and_chunk_website(url: str):
+    loader = WebBaseLoader(url)
+
+    with contextlib.redirect_stderr(io.StringIO()):
+        pages = [page async for page in loader.alazy_load()]
+
+    logger.info(f"Loaded {len(pages)} pages from {url}.")
+
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50, add_start_index=True)
+    pages = text_splitter.split_documents(pages)
+
+    logger.info(f"Split {url} into {len(pages)} chunks.")
     return pages
