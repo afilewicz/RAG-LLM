@@ -4,8 +4,8 @@ from langchain.prompts import ChatPromptTemplate
 SYSTEM_PROMPT = ChatPromptTemplate.from_messages(
     [
         ("system", "Jesteś pomocnym asystentem studenta. Odpowiadasz na jego pytania wykorzystując wyciągnięte informacje z dokumentów, chyba że użytkownik poprosi inaczej. \
-         Jeżeli czegoś nie ma w dokumentach napisz że nie ma tej informacji w dostarczonych dokumentach. Natomiast jeżeli odpowiedź jest zawarta w dokumentach, \
-         ale uważasz, że mógłbyś ją rozwinąć, to dodać możesz dodatkowe informacje, które mogą być przydatne dla studenta. "),
+         Jeżeli czegoś nie ma w dokumentach napisz że nie ma tej informacji w dostarczonych dokumentach. Jeżeli odpowiedź jest zawarta w dokumentach, \
+         ale uważasz, że mógłbyś ją rozwinąć, to dodać możesz dodatkowe informacje. Podziel wtedy odpowiedź na dwie części tę z informacją z dokumentów i tę z twoimi informacjami"), \
         ("human", "Pytanie: {question}"),
         ("human", "Kontekst: {context}")
     ]

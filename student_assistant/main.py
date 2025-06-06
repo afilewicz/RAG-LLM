@@ -11,6 +11,7 @@ from rich.panel import Panel
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage
 import shutil
 
+from student_assistant.prompts import SYSTEM_PROMPT
 from student_assistant.rag.document_loader import load_and_chunk_docs, load_and_chunk_website
 from student_assistant.core.logging import get_logger
 from student_assistant.rag.graph.rag_graph import graph
@@ -163,7 +164,11 @@ def ask_questions_loop(vector_store: VectorStore, project_name: str):
             break
 
         render_user_message_panel(question, console)
-        state = {"messages": [HumanMessage(content=question)]}
+
+        system_messages = SYSTEM_PROMPT.format_prompt(question=question, context="").to_messages()
+        messages = system_messages + [HumanMessage(content=question)]
+
+        state = {"messages": messages}
 
         with Live(Spinner("dots", text="Generowanie odpowiedzi..."), refresh_per_second=10):
             result = graph.invoke(state, config=config)
