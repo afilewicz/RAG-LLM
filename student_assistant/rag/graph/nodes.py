@@ -6,7 +6,7 @@ from langgraph.graph import MessagesState
 from student_assistant.core.config import settings
 from student_assistant.core.logging import get_logger
 from student_assistant.prompts import SYSTEM_PROMPT, GRADE_PROMPT, REWRITE_PROMPT
-from student_assistant.rag.graph.tools import retreive
+from student_assistant.rag.graph.tools import retreive, web_search
 
 
 logger = get_logger(__name__)
@@ -24,7 +24,7 @@ def generate_query_or_respond(state: State):
     If no context is provided, generate a query instead.
     """
     logger.info(f"generate_querry_or_respond called with messages: {state["messages"]}")
-    response = llm.bind_tools([retreive]).invoke(state['messages'])
+    response = llm.bind_tools([retreive, web_search]).invoke(state['messages'])
     return {"messages": response}
 
 

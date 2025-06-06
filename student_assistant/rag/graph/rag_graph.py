@@ -8,14 +8,14 @@ from student_assistant.rag.graph.nodes import (
     generate_answer,
     State
 )
-from student_assistant.rag.graph.tools import retreive
+from student_assistant.rag.graph.tools import retreive, web_search
 from student_assistant.rag.memory import history_manager
 
 
 workflow = StateGraph(State)
 
 workflow.add_node(generate_query_or_respond)
-workflow.add_node("retrieve", ToolNode([retreive]))
+workflow.add_node("retrieve", ToolNode([retreive, web_search]))
 workflow.add_node(rewrite_question)
 workflow.add_node(generate_answer)
 
@@ -39,5 +39,5 @@ workflow.add_edge("rewrite_question", "generate_query_or_respond")
 
 graph = workflow.compile(checkpointer=history_manager.checkpointer)
 
-# with open("graph_visualization.png", "wb") as f:
-#     f.write(graph.get_graph().draw_mermaid_png())
+with open("graph_visualization.png", "wb") as f:
+    f.write(graph.get_graph().draw_mermaid_png())

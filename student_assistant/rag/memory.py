@@ -3,6 +3,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
+from pathlib import Path
 
 
 @dataclass
@@ -11,6 +12,7 @@ class ChatHistoryManager:
     checkpointer: SqliteSaver = field(init=False)
 
     def __post_init__(self):
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.checkpointer = SqliteSaver(conn)
 
