@@ -142,7 +142,6 @@ def ask_questions_loop(vector_store: VectorStore, project_name: str):
         question = new_question()
         
         if not question.strip():
-            console.print("Zakończono sesję pytań")
             break
 
         render_user_message_panel(question, console)
