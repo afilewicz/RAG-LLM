@@ -1,5 +1,12 @@
 # Asystent nauki do kolokwium – Dokumentacja
 
+## Uruchomienie
+
+```bash
+just
+```
+---
+
 ## Opis ogólny
 
 Aplikacja CLI wspomagająca studentów w pracy z dokumentami. Pozwala zarządzać projektami, wczytywać dokumenty (lokalne i online), zadawać pytania na podstawie treści dokumentów oraz zarządzać historią czatu. Dane przechowywane są w lokalnej bazie SQLite. Aplikacja używa RAG (Retrieval-Augmented Generation) z LangChainem.
@@ -83,6 +90,13 @@ Użytkownik może:
 
 ---
 
+## Schemat architektury systemu
+
+
+![Schemat architektury](images/graph_visualization.png)
+
+---
+
 ## Komponenty systemowe
 
 ### `Project`
@@ -137,10 +151,7 @@ Konfiguracja `settings` zawiera m.in.:
 
 ---
 
-## Uruchomienie
-
-Punkt wejścia aplikacji:
-
-```bash
-just
-```
+## Przykładowe zapytania
+![Zrzut ekranu 1](images/screenshot_MUA.png)
+![Zrzut ekranu 2](images/screenshot_exec.png)
+---
