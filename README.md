@@ -1,16 +1,31 @@
 # Asystent nauki do kolokwium – Dokumentacja
 
-## Uruchomienie
-
-```bash
-just
-```
----
-
 ## Opis ogólny
 
 Aplikacja CLI wspomagająca studentów w pracy z dokumentami. Pozwala zarządzać projektami, wczytywać dokumenty (lokalne i online), zadawać pytania na podstawie treści dokumentów oraz zarządzać historią czatu. Dane przechowywane są w lokalnej bazie SQLite. Aplikacja używa RAG (Retrieval-Augmented Generation) z LangChainem.
 
+---
+
+## Wymagania
+
+- Python 3.10+
+
+- uv – szybki manager środowisk i zależności (alternatywa dla pip + virtualenv)
+
+- just – narzędzie do prostego uruchamiania komend
+
+---
+
+## Instrukcja uruchomienia
+
+```bash
+git clone https://github.com/afilewicz/RAG-LLM.git
+cd LLM-projekt
+uv venv
+source .venv/bin/activate
+uv sync
+just
+```
 ---
 
 ##  Struktura głównych komponentów
@@ -24,17 +39,19 @@ Z wykorzystaniem **InquirerPy** realizowane są:
 - Potwierdzenia akcji (usuwanie projektów/dokumentów),
 - Interaktywne wprowadzanie pytań.
 
-### Konsola – Wyświetlanie wyników
+## Przechowywanie danych
 
-Z użyciem **rich.console**, **rich.panel** i **rich.markdown**, aplikacja:
+### SQLite przechowuje metadane:
 
-- Renderuje wiadomości użytkownika i asystenta w stylizowanych panelach,
-- Pokazuje historię czatu,
-- Informuje o stanie operacji (np. spinner przy ładowaniu danych).
+- Projekty,
+- Dokumenty przypisane do projektów.
 
----
+### Chroma (wektorowa baza danych) przechowuje:
 
-##  Baza danych
+- Przetworzoną zawartość dokumentów (embeddingi),
+
+- Używana przy zadawaniu pytań i ocenie trafności odpowiedzi.
+
 
 Używana baza danych **SQLite** zawiera dwie tabele:
 
@@ -42,7 +59,7 @@ Używana baza danych **SQLite** zawiera dwie tabele:
 CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE
-);
+    );
 
 CREATE TABLE IF NOT EXISTS documents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,12 +69,6 @@ CREATE TABLE IF NOT EXISTS documents (
 );
 ```
 
-### Możliwości
-
-- Tworzenie i usuwanie projektów,
-- Dodawanie i usuwanie dokumentów z projektu,
-- Pobieranie listy projektów i dokumentów,
-- Pobieranie ID projektu po nazwie.
 
 ---
 
@@ -65,16 +76,15 @@ CREATE TABLE IF NOT EXISTS documents (
 
 ### Wczytywanie
 
-Obsługiwane źródła:
 
 - 📄 Pliki `.pdf` z katalogu `data/`
 - 🌐 Strony internetowe (URL)
 
-Dokumenty są dzielone na fragmenty i przekazywane do **wektorowej bazy wiedzy (VectorStore)**.
+  Dokumenty są dzielone na fragmenty, następnie embeddingi przekazywane są do **wektorowej bazy wiedzy (VectorStore)**.
 
 ### Przeglądanie i usuwanie
 
-Użytkownik może:
+  Użytkownik może:
 
 - Przeglądać listę dokumentów w projekcie,
 - Wybierać i usuwać wybrane pliki.
@@ -87,6 +97,25 @@ Użytkownik może:
 - Do historii wiadomości dodawany jest `SystemMessage`,
 - Model generuje odpowiedź w oparciu o dokumenty i opcjonalnie uzupełnia brakującą wiedzę,
 - Historia konwersacji jest przechowywana i może być czyszczona.
+
+---
+
+## Konsola – Wyświetlanie wyników
+
+Z użyciem **rich.console**, **rich.panel** i **rich.markdown**, aplikacja:
+
+- Renderuje wiadomości użytkownika i asystenta w stylizowanych panelach,
+- Pokazuje historię czatu,
+- Informuje o stanie operacji (np. spinner przy ładowaniu danych).
+
+---
+
+## Możliwości
+
+- Tworzenie i usuwanie projektów,
+- Dodawanie i usuwanie dokumentów z projektu,
+- Pobieranie listy projektów i dokumentów,
+- Pobieranie ID projektu po nazwie.
 
 ---
 
@@ -120,6 +149,43 @@ Zarządza historią czatu użytkownika na poziomie projektu (identyfikowanego pr
 ### `graph.invoke(...)`
 
 Główna funkcja generująca odpowiedzi – wykorzystuje pipeline LangChaina i konfigurację RAG.
+
+---
+
+## Node'y w pipeline (graph.invoke(...))
+
+### generate_query_or_respond
+
+To pierwszy krok w grafie – decyduje, czy zadać zapytanie (retreive, web_search) czy wygenerować odpowiedź. 
+Używa narzędzi (tools) do wywołania RAG lub web search. 
+Wykorzystuje llm.bind_tools([retreive, web_search]).
+
+### grade_documents
+
+Sprawdza, czy ostatnio dodane wiadomości dostarczają wystarczającego kontekstu.
+Używa GRADE_PROMPT oraz llm.with_structured_output(GradeDocuments) do zwrotu "tak" lub "nie".
+Zwraca przejście do "generate_answer" lub "rewrite_question".
+
+### rewrite_question
+
+Jeśli kontekst jest nieadekwatny, przepytuje LLM o lepszą wersję pytania (REWRITE_PROMPT).
+Zastępuje ostatnią wiadomość użytkownika nowym pytaniem.
+
+### generate_answer
+
+Końcowy etap. Zbiera ostatnie wiadomości i tworzy prompt na bazie SYSTEM_PROMPT.
+Generuje końcową odpowiedź od asystenta.
+
+---
+
+## Narzędzia (tools)
+
+To narzędzia, które LLM może wywołać podczas interakcji:
+
+- retreive(query, config) - szuka dokumentów wektorowych (ChromaDB) podobnych do pytania. Zwraca listę obiektów
+Document (tekst + metadane). Wymaga vector_store w konfiguracji.
+
+- web_search(query) - pobiera informacje z internetu na bazie zapytania (WebBaseLoader).
 
 ---
 
